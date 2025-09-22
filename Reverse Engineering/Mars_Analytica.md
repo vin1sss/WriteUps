@@ -47,7 +47,29 @@ Fora isso, o comando `strings` não mostra nada útil, confirmando que as string
 
 #### Análise Estática com Ghidra
 
+Para fazer a [Análise Estática](https://www.checkpoint.com/pt/cyber-hub/cloud-security/what-is-static-code-analysis/) do binário utilizaremos o [Ghidra](https://ghidralite.com/).
 
+[![image.png](https://i.postimg.cc/vTS5Kp16/image.png)](https://postimg.cc/fSm3tqfw)
+
+Vamos analisar as funções para tentar encontrar a `main`.
+
+Na lista de funções, tem uma chamada `_start`, o que sugere ser o *entry point* do binário:
+
+[![image.png](https://i.postimg.cc/4y5w8LGD/image.png)](https://postimg.cc/5QXwym6g)
+
+*Entry point*: `_start/processEntry`
+[![image.png](https://i.postimg.cc/BQRPr5vk/image.png)](https://postimg.cc/fJjbX9mf)
+
+- `processEntry _start(...)`
+É a função de entrada gerada pelo linker — corresponde ao símbolo `_start` (o código que o kernel chama ao executar o ELF).
+- `__libc_start_main(...)`
+Essa é a chamada padrão feita por `_start` em binários Linux que usam [glibc](https://plus.diolinux.com.br/t/glibc-o-coracao-das-distribuicoes-linux/68098). A função `__libc_start_main` prepara o runtime (inicializa coisas do C runtime), chama `__libc_csu_init` (inits do C++/construtores), executa `main` (no nosso caso `FUN_00400da9`) e só retorna depois que `main` terminar e os finalizadores rodarem. A assinatura típica (glibc) é:
+```
+int __libc_start_main(int (*main)(int, char **, char **),
+                      int argc, char **ubp_av,
+                      void (*init)(void), void (*fini)(void),
+                      void (*rtld_fini)(void), void *stack_end);
+```
 
 #### Conclusão
 
