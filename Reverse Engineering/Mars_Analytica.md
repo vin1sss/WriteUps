@@ -1,4 +1,3 @@
-
 # DuckWare Team - Mars Analytica (NorthSec 2018)
 ###### Solved by @vin1sss
 
@@ -9,59 +8,35 @@
 
 Este desafio originalmente foi aplicado no CTF presencial que aconteceu na [NorthSec conference](https://nsec.io/) em 2018. 
 
-A NorthSec Conference é o maior evento de segurança aplicada do Canadá, realizado anualmente em Montreal, que reúne profissionais e estudantes de cibersegurança para partilhar conhecimento e desenvolver competências técnicas.
-- [Página do desafio](https://cryptohack.org/courses/intro/xorkey1/)
+Neste desafio, recebemos um binário ELF de 64 bits para Linux chamado `tarefa1` (originalmente chamado `MarsAnalytica`).
 
-Esta questão consiste em decriptar uma string em [hexadecimal](https://pt.wikipedia.org/wiki/Sistema_de_numera%C3%A7%C3%A3o_hexadecimal) para encontrar a flag.
+Ao executá-lo utilizando o comando `./tarefa1`, o programa exibe um banner e solicita um `Citizen Access ID`:
 
-#### Análise Inicial
+[![Captura-de-tela-2025-09-18-155119.png](https://i.postimg.cc/jj49yqyV/Captura-de-tela-2025-09-18-155119.png)](https://postimg.cc/GB9qCCMz)
 
-Após ensinar o funcionamento do [algoritmo XOR](https://www.101computing.net/xor-encryption-algorithm/) nos desafios anteriores, agora é apresentado algo um pouco mais desafiante. O enunciado é simples, contendo apenas a frase:
+Qualquer entrada incorreta resulta no travamento e fim do pograma:
 
-> *"I've encrypted the flag with my secret key, you'll never be able to guess it."*  
-> *(Eu criptografei a bandeira com minha chave secreta, você nunca será capaz de adivinhá-la.)*
+[![image.png](https://i.postimg.cc/kXgn1PW2/image.png)](https://postimg.cc/c6PyCj9W)
 
-Além disso, há uma dica:
+Isso sugere que o nosso objetivo é realizar [engenharia reversa](https://medium.com/ipnet-growth-partner/engenharia-reversa-e-o-seu-papel-dentro-da-seguran%C3%A7a-cibern%C3%A9tica-c70e1f84d4ec) neste executável, descobrir como o programa valida o `Citizen Acess ID` e encontrar o valor correto que revela a **flag**.
 
-> *"Remember the flag format and how it might help you in this challenge!"*  
-> *(Lembre-se do formato da bandeira e como ele pode ajudar você neste desafio!)*
+#### Reconhecimento Inicial do Binário
 
-E também uma string em hexadecimal:
+Antes de abrir o binário em um [Descompilador](https://medium.com/@raw.rewa10/decompilers-and-reverse-engineering-6b4acf3f76ff), vamos fazer uma análise inicial.
 
-0e0b213f26041e480b26217f27342e175d0e070a3c5b103e2526217f27342e175d0e077e263451150104
+Executando o comando `file` no terminal, identificamos o tipo do arquivo e algumas características:
 
-Print do enunciado:
-[![Captura-de-tela-2025-06-13-134751.png](https://i.postimg.cc/P5b2Kb0Z/Captura-de-tela-2025-06-13-134751.png)](https://postimg.cc/bZJxwnyN)
+[![image.png](https://i.postimg.cc/RF8ZKPbP/image.png)](https://postimg.cc/ftcshvsX)
 
-#### Interpretando a dica
+Executando o comando [`strings`](https://pt.wikipedia.org/wiki/Strings_(Unix)):
 
-A dica fornecida no enunciado nos direciona a uma única abordagem lógica. Sabemos que o algoritmo XOR opera sobre dois conjuntos de dados:
+[![image.png](https://i.postimg.cc/rpNnPs6W/image.png)](https://postimg.cc/QBVJBXdx)
 
-[![xor-xor.webp](https://i.postimg.cc/yNDhtwNM/xor-xor.webp)](https://postimg.cc/4KThh2VP)
+Obtemos algo, temos a string `UPX!` repetindo algumas vezes, além deste comentário informando que o arquivo está comprimido com [UPX](https://pt.quarkus.io/guides/upx):
 
-Neste caso, uma das entradas é a string em hexadecimal apresentada no desafio. Assim, resta deduzirmos a segunda entrada, que deve ser algo que já conhecemos.
-
-Como aprendemos ao longo da trilha, todas as flags seguem um formato padronizado e começam com `"crypto{"`. Podemos, portanto, usar esse trecho conhecido da flag como ponto de partida para tentar descobrir qual foi a chave secreta utilizada na cifra.
+[![image.png](https://i.postimg.cc/W36drRks/image.png)](https://postimg.cc/xJ8jD45Z)
 
 #### Solução
-
-Para resolver este desafio, utilizarei o site [dcode.fr](https://www.dcode.fr/xor-cipher), que contém uma ferramenta prática para realizar operações de [XOR](https://www.101computing.net/xor-encryption-algorithm/) entre textos e/ou valores hexadecimais. Essa ferramenta facilita a aplicação do algoritmo e nos permite testar hipóteses sobre a chave ao comparar os resultados com o formato esperado da flag.
-
-Então, inserindo a string em hexadecimal fornecida no enunciado diretamente na caixa de texto principal (que aceita entradas em hexadecimal, sem a necessidade de conversão prévia), e o trecho conhecido da flag `"crypto{"` na caixa de texto da opção marcada **"Use the ascii key"** (que permite entradas em texto padrão), realizamos a primeira análise:
-
-[![Captura-de-tela-2025-06-13-141610.png](https://i.postimg.cc/6q2y50Cm/Captura-de-tela-2025-06-13-141610.png)](https://postimg.cc/YL7pdQn6)
-
-A ferramenta aplicará o XOR entre os primeiros bytes da string e a palavra `"crypto{"`, revelando a parte inicial da chave secreta utilizada na criptografia:
-
-[![Captura-de-tela-2025-06-13-142408.png](https://i.postimg.cc/xdpHPgy6/Captura-de-tela-2025-06-13-142408.png)](https://postimg.cc/QB5H8Qz7)
-
-Agora que sabemos o começo da chave secreta, `"myXORkey"`, utilizamos essa informação para realizar uma nova operação de XOR. Desta vez, em vez de usar o trecho conhecido da flag, aplicamos diretamente a chave descoberta sobre toda a string em hexadecimal.
-
-[![Captura-de-tela-2025-06-13-143321.png](https://i.postimg.cc/RhSBV12z/Captura-de-tela-2025-06-13-143321.png)](https://postimg.cc/dkxX5CqW)
-
-A própria ferramenta do dcode se encarrega de repetir automaticamente a chave ao longo de toda a entrada — o que é essencial, já que a chave tem apenas 8 bytes, enquanto a string criptografada possui dezenas de bytes. Com isso, conseguimos aplicar corretamente a operação de XOR byte a byte, o que revela o conteúdo original criptografado: a flag completa.
-
-[![Captura-de-tela-2025-06-13-143409.png](https://i.postimg.cc/Sx2psx1j/Captura-de-tela-2025-06-13-143409.png)](https://postimg.cc/21Dt9rDf)
 
 #### Conclusão
 
@@ -71,3 +46,4 @@ Flag:
 Este desafio foi uma excelente aplicação prática dos conceitos fundamentais de criptografia com XOR. Através de um pequeno trecho conhecido da flag, conseguimos deduzir parte da chave secreta utilizada na cifra. A partir disso, utilizamos uma ferramenta online para repetir essa chave ao longo de toda a mensagem criptografada, revertendo o processo de encriptação e revelando a flag completa.
 
 Mais do que simplesmente encontrar a resposta, este exercício reforça a importância de padrões previsíveis em contextos criptográficos. Quando uma parte da mensagem é conhecida — ou pode ser adivinhada —, todo o sistema se torna vulnerável. Essa lição é essencial não só para resolver desafios em CTFs, mas também para compreender os riscos reais em sistemas mal projetados no mundo da segurança da informação.
+
