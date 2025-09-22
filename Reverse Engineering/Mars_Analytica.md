@@ -36,7 +36,18 @@ Obtemos algo, temos a string `UPX!` repetindo algumas vezes, além deste coment�
 
 [![image.png](https://i.postimg.cc/W36drRks/image.png)](https://postimg.cc/xJ8jD45Z)
 
-#### Solução
+Então antes de tudo, vamos descompactar utilizando o comando `upx -d tarefa1 -o tarefa1_unpacked
+`:
+
+[![image.png](https://i.postimg.cc/NGHnxx67/image.png)](https://postimg.cc/23CTkhXV)
+
+Agora o tamanho do binário salta para quase 11 MB.
+
+Fora isso, o comando `strings` não mostra nada útil, confirmando que as strings estão ofuscadas ou geradas em runtime.
+
+#### Análise Estática com Ghidra
+
+
 
 #### Conclusão
 
