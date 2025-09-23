@@ -61,7 +61,7 @@ Cada bloco desse é um novo conjunto de funções e chamadas:
 
 [![image.png](https://i.postimg.cc/90vd9JM5/image.png)](https://postimg.cc/K3D3S7BJ)
 
-Para tentar entender de maneira mais simples, exportei o código linear do Binary Ninja e pedi ao Manus para analisar e me explicar o fluxo do código. Esta foi sua resposta:
+Para tentar entender de maneira mais simples, exportei o código linear do Binary Ninja e pedi ao [Manus](https://manus.im/pt-br/about) para analisar e me explicar o fluxo do código. Esta foi sua resposta:
 
 ---
 
@@ -117,7 +117,7 @@ O executável implementa um verificador obfuscado de *citizen id*, baseado em m�
 
 #### Solução
 
-Infelizmente, apesar de múltiplas tentativas de reverter o complexo conjunto de transformações aritméticas, saltos computados e demais operações presentes no fluxo principal, não foi possível alcançar um resultado conclusivo.
+Infelizmente, apesar de múltiplas tentativas de reverter o complexo conjunto de transformações aritméticas, saltos computados e demais operações presentes no fluxo principal, não consegui alcançar um resultado conclusivo.
 
 Porém, para não deixar esta documentação sem um resultado, encontrei um write-up desta questão que apresenta uma solução detalhada e aparentemente chega a um resultado válido:
 
@@ -149,7 +149,7 @@ Porém, para não deixar esta documentação sem um resultado, encontrei um writ
 
 **4. Extração do algoritmo de verificação**
 
-* A entrada (*citizen id*) era armazenada em posições específicas do stack virtual com ordem embaralhada:
+* A entrada (`citizen id`) era armazenada em posições específicas do stack virtual com ordem embaralhada:
 
   ```
   [7, 8, 13, 15, 16, 26, 27, 22, 21, 4, 18, 28, 23, 29, 9, 1, 25, 30, 17]
@@ -196,7 +196,7 @@ print solution
 
 **6. Resultado**
 
-O *citizen id* válido obtido foi:
+O `citizen id` válido obtido foi:
 
 ```
 q4Eo-eyMq-1dd0-leKx
@@ -204,7 +204,7 @@ q4Eo-eyMq-1dd0-leKx
 
 ---
 
-**Resumo (do resumo)**: o binário implementava uma máquina virtual ofuscada. O write-up evitou decodificar todos os handlers manualmente e explorou padrões repetidos para identificar instruções. Extraindo as equações de verificação, resolveu-as via **constraint solving (Z3)**, chegando ao *citizen id* correto.
+**Resumo (do resumo)**: o binário implementava uma máquina virtual ofuscada. O write-up evitou decodificar todos os handlers manualmente e explorou padrões repetidos para identificar instruções. Extraindo as equações de verificação, resolveu-as via **constraint solving (Z3)**, chegando ao `citizen id` correto.
 
 #### Conclusão
 
