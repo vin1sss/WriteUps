@@ -45,38 +45,174 @@ Agora o tamanho do binário salta para quase 11 MB.
 
 Fora isso, o comando `strings` não mostra nada útil, confirmando que as strings estão ofuscadas ou geradas em runtime.
 
-#### Análise Estática com Ghidra
+#### Análise Estática com Binary Ninja 
 
-Para fazer a [Análise Estática](https://www.checkpoint.com/pt/cyber-hub/cloud-security/what-is-static-code-analysis/) do binário utilizaremos o [Ghidra](https://ghidralite.com/).
+Para fazer a [Análise Estática](https://www.checkpoint.com/pt/cyber-hub/cloud-security/what-is-static-code-analysis/) do binário utilizaremos o [Binary Ninja](https://en.wikipedia.org/wiki/Binary_Ninja).
 
-[![image.png](https://i.postimg.cc/vTS5Kp16/image.png)](https://postimg.cc/fSm3tqfw)
+[![image.png](https://i.postimg.cc/fRhrCLGn/image.png)](https://postimg.cc/Mvd5KWZd)
 
-Vamos analisar as funções para tentar encontrar a `main`.
+Vamos configurar a exibição para **modo gráfico** e **High Level IL**.
 
-Na lista de funções, tem uma chamada `_start`, o que sugere ser o *entry point* do binário:
+Ao analisar o gráfico nota-se a complexidade absurda e a grande quantidade de funções:
 
-[![image.png](https://i.postimg.cc/4y5w8LGD/image.png)](https://postimg.cc/5QXwym6g)
+[![image.png](https://i.postimg.cc/PJfccfzr/image.png)](https://postimg.cc/r0bQRkPv)
 
-*Entry point*: `_start/processEntry`
-[![image.png](https://i.postimg.cc/BQRPr5vk/image.png)](https://postimg.cc/fJjbX9mf)
+Cada bloco desse é um novo conjunto de funções e chamadas: 
 
-- `processEntry _start(...)`
-É a função de entrada gerada pelo linker — corresponde ao símbolo `_start` (o código que o kernel chama ao executar o ELF).
-- `__libc_start_main(...)`
-Essa é a chamada padrão feita por `_start` em binários Linux que usam [glibc](https://plus.diolinux.com.br/t/glibc-o-coracao-das-distribuicoes-linux/68098). A função `__libc_start_main` prepara o runtime (inicializa coisas do C runtime), chama `__libc_csu_init` (inits do C++/construtores), executa `main` (no nosso caso `FUN_00400da9`) e só retorna depois que `main` terminar e os finalizadores rodarem. A assinatura típica (glibc) é:
+[![image.png](https://i.postimg.cc/90vd9JM5/image.png)](https://postimg.cc/K3D3S7BJ)
+
+Para tentar entender de maneira mais simples, exportei o código linear do Binary Ninja e pedi ao Manus para analisar e me explicar o fluxo do código. Esta foi sua resposta:
+
+---
+
+**1. Estrutura**
+
+* **Inicialização:** cópia de duas grandes tabelas constantes para memória local (`0xe551e0` e `0xe57d40`).
+* **Registradores virtuais:** dezenas de variáveis locais manipuladas como estado interno.
+* **Fluxo principal:** série de transformações aritméticas/bitwise em laços longos.
+* **Lookups:** índices calculados via multiplicações e módulos usados para acessar tabelas.
+* **Dispatch:** salto indireto controlado por valores de tabelas (`jump(*(arg1 - 0x5d328) + ...)`).
+* **Saída:** sub-rotina (`sub_4009d7`) gera caracteres, enviados a `putchar`.
+
+---
+
+**2. Strings e chamadas externas**
+
+* Strings claras: `ACCESS GRANTED`, `ACCESS DENIED`.
+* Chamadas de libc: `puts`, `putchar`, `getchar`, `memcpy`, `malloc`, `time`, `srand`, `exit`, etc.
+
+---
+
+**3. Características**
+
+* Computed jumps → máquina virtual/obfuscation.
+* Uso intensivo de tabelas → validação dependente de lookups.
+* Impressão caractere a caractere da saída.
+
+---
+
+**4. Interpretação funcional**
+
+1. Carrega tabelas e inicializa estado.
+2. Executa múltiplos rounds de transformação sobre input.
+3. Usa índices derivados do estado para consultar tabelas.
+4. Calcula próximo bloco via dispatch indireto.
+5. Em condições de sucesso, gera saída: “ACCESS GRANTED” seguido do valor correto (*citizen id*).
+
+---
+
+**5. Estratégias de resolução**
+
+* **Emulação em Python:** reproduzir lógica HLIL com dumps das tabelas → gera *citizen id*.
+* **Execução monitorada:** rodar em GDB, dumpar tabelas e capturar saída de `putchar`.
+* **Simbólica (angr):** possível, mas exigiria hooks para os dispatchs computados.
+
+---
+
+**6. Conclusão**
+
+O executável implementa um verificador obfuscado de *citizen id*, baseado em máquina de estados com tabelas de lookup e saltos indiretos. O caminho de sucesso resulta em `ACCESS GRANTED` e exibe a sequência correta.
+
+---
+
+#### Solução
+
+Infelizmente, apesar de múltiplas tentativas de reverter o complexo conjunto de transformações aritméticas, saltos computados e demais operações presentes no fluxo principal, não foi possível alcançar um resultado conclusivo.
+
+Porém, para não deixar esta documentação sem um resultado, encontrei um write-up desta questão que apresenta uma solução detalhada e aparentemente chega a um resultado válido:
+
+* [NorthSec 2018 - Mars Analytica](https://re-dojo.github.io/posts/nsec2018/mars_analytica/)
+
+**Resumo da solução do autor**:
+
+---
+
+**1. Reconhecimento inicial**
+
+* O binário estava empacotado com **UPX**, e após descompressão aumentou para \~11 MB.
+* Era um ELF 64-bit *stripped*, sem *strings* úteis.
+
+**2. Identificação da máquina virtual**
+
+* A `main` copiava **cinco tabelas grandes** para a stack.
+* O fluxo consistia em **saltos indiretos (`push/ret`, `jmp rax`)**, típico de **virtualização/VM**.
+* Cada “handler” calculava o próximo endereço → confirmado em depuração (GDB).
+
+**3. Análise dos handlers**
+
+* Implementação de instruções de máquina virtual em cima de **listas** (`malloc` → inserção, `free` → remoção).
+* A VM era **stack-based**.
+* Alguns handlers simples foram identificados por padrão de chamadas, ex.:
+
+  * `pop_val + putchar + fflush` → instrução `putchar`.
+  * `pop_val + pop_val + push_val` + operação → `xor`, `sub`, `mul`, etc.
+
+**4. Extração do algoritmo de verificação**
+
+* A entrada (*citizen id*) era armazenada em posições específicas do stack virtual com ordem embaralhada:
+
+  ```
+  [7, 8, 13, 15, 16, 26, 27, 22, 21, 4, 18, 28, 23, 29, 9, 1, 25, 30, 17]
+  ```
+* Após isso, o programa aplicava várias **equações aritméticas e bitwise** entre caracteres.
+* Exemplo:
+
+  ```
+  (buf[14] * buf[6]) * ((buf[12] - buf[10]) ^ buf[13]) - 0x3fcf == 0
+  ```
+
+**5. Resolução com Z3**
+
+* O autor modelou cada caractere como variável simbólica (`BitVec`).
+* Impôs restrições: caracteres imprimíveis.
+* Adicionou todas as equações extraídas.
+* Rodou o solver **Z3**, que retornou a solução.
+
 ```
-int __libc_start_main(int (*main)(int, char **, char **),
-                      int argc, char **ubp_av,
-                      void (*init)(void), void (*fini)(void),
-                      void (*rtld_fini)(void), void *stack_end);
+from z3 import *
+
+solver = Solver()
+
+# Flag order
+order=[7,8,13,15,16,26,27,22,21,4,18,28,23,29,9,1,25,30,17]
+flag={}
+for i in order:
+	flag[i] = BitVec("c_%d" % i,8)
+
+#char constraints
+for k in flag.keys():
+	solver.add(flag[k] >= 32, flag[k] <= 126)
+	
+#equations
+solver.add((flag[9] * flag[27])*((flag[23]-flag[18])^flag[29]) == 0x3fcf)
+...
+solution=''
+if solver.check() == z3.sat:
+    model=solver.model()
+    for i in order:
+        solution+=chr(model[flag[i]].as_signed_long())
+print solution
 ```
+
+**6. Resultado**
+
+O *citizen id* válido obtido foi:
+
+```
+q4Eo-eyMq-1dd0-leKx
+```
+
+---
+
+**Resumo (do resumo)**: o binário implementava uma máquina virtual ofuscada. O write-up evitou decodificar todos os handlers manualmente e explorou padrões repetidos para identificar instruções. Extraindo as equações de verificação, resolveu-as via **constraint solving (Z3)**, chegando ao *citizen id* correto.
 
 #### Conclusão
 
+Apenas para confirmar, ao executar o binário e inserir o `citizen id` gerado, a flag é retornada:
+
+[![image.png](https://i.postimg.cc/KzhbGD39/image.png)](https://postimg.cc/rdj3gWJW)
+
 Flag:
->`crypto{1f_y0u_Kn0w_En0uGH_y0u_Kn0w_1t_4ll}`
+>`FLAG-l0rdoFb1Nq4EoeyMq1dd0leKx`
 
-Este desafio foi uma excelente aplicação prática dos conceitos fundamentais de criptografia com XOR. Através de um pequeno trecho conhecido da flag, conseguimos deduzir parte da chave secreta utilizada na cifra. A partir disso, utilizamos uma ferramenta online para repetir essa chave ao longo de toda a mensagem criptografada, revertendo o processo de encriptação e revelando a flag completa.
-
-Mais do que simplesmente encontrar a resposta, este exercício reforça a importância de padrões previsíveis em contextos criptográficos. Quando uma parte da mensagem é conhecida — ou pode ser adivinhada —, todo o sistema se torna vulnerável. Essa lição é essencial não só para resolver desafios em CTFs, mas também para compreender os riscos reais em sistemas mal projetados no mundo da segurança da informação.
-
+O resultado final ficou bem distante do que eu desejava, mas mesmo sem ter conseguido resolver o desafio por completo, a experiência foi extremamente enriquecedora. Durante o processo, pude explorar de forma prática diversas ferramentas de análise estática de código, entender melhor o fluxo de execução, mergulhar em detalhes de assembly e experimentar diferentes abordagens de engenharia reversa. Tudo isso trouxe um aprendizado valioso e ampliou bastante minha confiança para enfrentar desafios semelhantes no futuro.
