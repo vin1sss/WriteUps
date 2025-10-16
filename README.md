@@ -1,2 +1,2 @@
-# Duckware
+# Duckware WriteUps
 Duckware Writeup Archive
