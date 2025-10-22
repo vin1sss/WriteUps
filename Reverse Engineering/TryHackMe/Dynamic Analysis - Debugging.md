@@ -22,8 +22,8 @@ Esta tarefa apresenta o **problema central** da sala: malwares usam [**técnicas
 
 **Objetivos de aprendizagem:**
 
-* Reconhecer **técnicas de evasão** contra análise dinâmica básica.
-* Introduzir o uso de **depuradores** para controlar o fluxo de execução.
+* Reconhecer [**técnicas de evasão**](https://github.com/vin1sss/WriteUps/blob/main/attachments/Evas%C3%B5es_usadas_por_malwares.md) contra análise dinâmica básica.
+* Introduzir o uso de [**depuradores**](https://github.com/vin1sss/WriteUps/blob/main/attachments/Debugging.md) para controlar o fluxo de execução.
 * **Manipular fluxo em tempo de execução** (registradores/flags, parâmetros).
 * **Patchar** o binário para atravessar a evasão e expor o conteúdo malicioso.
 
@@ -157,3 +157,135 @@ Esta tarefa estabelece o **conhecimento da interface** do xdbg: saber **onde olh
 
 ***
 
+## Tarefa 5 — Depuração na prática
+
+Mostra, na prática, como **executar passo a passo** um binário no **x32dbg/x64dbg**: abrir o `crackme-arebel.exe`, **deixar rodar uma vez** até cair no **TLS Callback**, navegar com **Step Into** até um **salto condicional (Jcc)**, **ler flags** (especialmente **ZF**) e reconhecer que o caminho atual leva a um **fluxo de evasão**.
+
+**Controles e pontos-chave (resumo):**
+
+* **File → Open**: carregue `crackme-arebel.exe`; o depurador **anexa** e pausa antes do início (uma janela de console vazia pode aparecer — é normal).
+
+  [![image.png](https://i.postimg.cc/cJwMGJ6s/image.png)](https://postimg.cc/NyGr1B1V)
+
+* **Run (→) apenas uma vez**: o status passa a *Running* e logo *Paused* em **`INT3 breakpoint "TLS Callback 1"`** (auto-break de TLS).
+
+  [![image.png](https://i.postimg.cc/DzLDpnTY/image.png)](https://postimg.cc/676YysTd)
+
+  * Configure/valide em **Options → Preferences**: **TLS Callbacks** e **System TLS Callbacks** marcados.
+
+    [![image.png](https://i.postimg.cc/GmYqdK5w/image.png)](https://postimg.cc/nXFv14x0)
+
+* **Step Into** dentro do TLS Callback: observe **EIP** avançar, **Registers/Stack** mudarem a cada instrução.
+
+  [![image.png](https://i.postimg.cc/XqfzN0LX/image.png)](https://postimg.cc/0KNfZFLq)
+
+* No **Jcc**, a barra informa **“jump not taken”** e, em **Registers**, **ZF = 1**.
+
+  [![image.png](https://i.postimg.cc/htjp6mkQ/image.png)](https://postimg.cc/4mD6hYNX)
+
+  
+* Se travar por engano (Run a mais), **Stop/Restart** o processo e repita.
+
+**Ideia central:**
+Aprender a **interpretar quebras em TLS Callback**, **inspecionar flags** para explicar decisões de salto e **comparar ramos** (endereços-alvo) é pré-requisito para, na sequência, **forçar o caminho correto em runtime** e, depois, **patchar** o binário para um bypass persistente.
+
+### Perguntas da tarefa
+
+* No TLS Callback há um **salto condicional**. Esse salto é tomado? (Y/N)
+
+  **Resposta:** `N`
+
+* **Qual é o valor da Zero Flag (ZF)** nesse salto condicional?
+
+  **Resposta:** `1`
+
+* **Qual API** é usada para **enumerar processos em execução**?
+
+  **Resposta:** `CreateToolhelp32Snapshot`
+
+* De qual **DLL do Windows** a API **SuspendThread** é chamada?
+
+  **Resposta:** `kernel32.dll`
+
+***
+
+## Tarefa 6 — Ignorando o caminho de execução indesejado
+
+Dá continuidade direta à prática anterior: **retornar ao TLS Callback**, alcançar o **salto condicional (Jcc)** e **forçar o desvio correto** primeiro em *runtime* (alterando **ZF**), depois de forma **persistente** via **patching**. O objetivo é evitar o **caminho de evasão** (que congela/suspende) e seguir o fluxo legítimo de análise.
+
+**Passos práticos (resumo):**
+
+* **Reinicie a execução** até o **TLS Callback** e avance (**Step Into**) até o **Jne**.
+
+  [![image.png](https://i.postimg.cc/05XTQ89z/image.png)](https://postimg.cc/6TRjbx2K)
+
+* O depurador indica **“jump not taken”** e, nos **Registers**, **ZF = 1**.
+
+  [![image.png](https://i.postimg.cc/RhWbfHvg/image.png)](https://postimg.cc/9wjpHzR9)
+
+  [![image.png](https://i.postimg.cc/tCWGmKHm/image.png)](https://postimg.cc/hfDYX3v9)
+
+* **Altere o ZF para 0** (duplo clique em **ZF** no painel de registradores) → o **salto passa a ser tomado** (*jump taken*), levando ao endereço **`0127116E`**.
+
+  [![image.png](https://i.postimg.cc/FFkM7MzT/image.png)](https://postimg.cc/hhgyY39m)
+
+  [![image.png](https://i.postimg.cc/NFvpyPCV/image.png)](https://postimg.cc/sQKpqKr9)
+
+* Prossiga alguns passos para **validar** que o fluxo seguiu o **branch** desejado (sem entrar no bloco de evasão).
+
+**Por que só mudar ZF não basta:**
+A alteração da flag é **temporária** (vale para **esta** execução). Ao reabrir o binário, o fluxo **voltará** ao caminho de evasão se as mesmas condições forem satisfeitas. Para “desarmar” de vez, é preciso fazer o **patching**.
+
+**Patching do binário (opções):**
+
+* **Trocar `jne` → `je`** (Edit/Assemble): inverte a condição; o salto será tomado quando antes não era, sem depender de mexer no ZF.
+
+  [![image.png](https://i.postimg.cc/8PzNsK8X/image.png)](https://postimg.cc/WtCQH710)
+
+* **Converter o condicional em `jmp` (incondicional)**: garante que **sempre** salte; é a opção **mais assertiva**.
+
+  [![image.png](https://i.postimg.cc/qMzS99Vc/image.png)](https://postimg.cc/QHZf7YMV)
+
+* **NOP na instrução sensível** (ex.: `call` em **`01271169`**): *right-click* → **Binary → Fill with NOPs**. Substitui a instrução por **NOPs** de mesmo tamanho (ex.: 5 bytes → 5 NOPs).
+
+  [![image.png](https://i.postimg.cc/XJqkr6g8/image.png)](https://postimg.cc/Q9LTzPw9)
+
+**Como salvar o patch:**
+
+* **File → Patch File** → escolha onde gravar a cópia patchada (ex.: `crackme-arebel2.exe`).
+
+  [![image.png](https://i.postimg.cc/ZYcv1MFT/image.png)](https://postimg.cc/mhPr9V5q)
+
+* Reabra o **binário patchado** para confirmar que o **caminho de evasão** ficou inacessível sem intervenções manuais.
+
+  [![image.png](https://i.postimg.cc/VL2fTqTL/image.png)](https://postimg.cc/N57v2HBW)
+
+**Ideia central:**
+Primeiro, **forçamos a branch em runtime** (ZF=0) para comprovar a hipótese. Em seguida, **fixamos o comportamento** com **patching**, eliminando a necessidade de manipular flags a cada execução e estabilizando a análise dinâmica.
+
+### Perguntas da tarefa
+
+* **Como se chama quando o código assembly de um binário é alterado permanentemente para obter o caminho de execução desejado?**
+
+  **Resposta:** `Patching`
+
+***
+
+## Tarefa 7 — Conclusão
+
+Fecha a trilha prática de **análise dinâmica avançada com depuração**: partimos de evasões que enganam a dinâmica básica, evoluímos para **controle fino da execução** (x32dbg/x64dbg), **manipulação de flags/registradores** em runtime e **patching** para estabilizar o fluxo e expor o comportamento real.
+
+**O que foi visto nesta sala:**
+
+* **Evasões vs. análise estática/dinâmica básica:** como alterações de hash, *packing*, imports dinâmicos, checagens de VM/tempo/usuário e detecção de ferramentas **condicionam** o comportamento observado.
+* **Depuração como alavanca de controle:** pausar onde importa (ex.: **TLS Callbacks**), **step-in/over**, ler **flags (ZF)** e **registradores**, inspecionar *stack/dump*, *threads*, *handles* e **call stack**.
+* **Intervenção em runtime:** alterar **estado** (p.ex., **ZF=0**) para **forçar/evitar branches** e confirmar hipóteses sobre caminhos de evasão.
+* **Patching (defang persistente):** transformar `jne→je`, trocar por `jmp` incondicional ou **NOPar** instruções sensíveis e salvar via **Patch File**, eliminando a dependência de intervenção manual a cada execução.
+
+**Ideia central:**
+A análise dinâmica só cumpre seu papel quando o analista **conduz o programa** pelo caminho certo. Depurar e patchar não são apenas “truques”: são métodos para **restaurar observabilidade**, reduzir falsos negativos e produzir **evidências confiáveis**.
+
+### Perguntas da tarefa
+
+* *Acesse nossos canais sociais para uma discussão mais aprofundada.*
+  **Nenhuma resposta necessária (check de progresso).**
