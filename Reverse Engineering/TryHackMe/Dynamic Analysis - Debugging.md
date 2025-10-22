@@ -296,8 +296,10 @@ Fim!
 
 [![image.png](https://i.postimg.cc/Xv37qW9F/image.png)](https://postimg.cc/VJGcZ3GL)
 
+<br>
+
 <p align="center">
-  <img src="https://i.postimg.cc/4NV1RvPp/Image-Photoroom.png" width="50"/>
+  <img src="https://github.com/vin1sss/WriteUps/blob/main/attachments/ninjaduck.png" width="50"/>
 </p>
 
 ##
