@@ -292,7 +292,7 @@ A análise dinâmica só cumpre seu papel quando o analista **conduz o programa*
 
 ***
 
-Fim! 
+**Fim!** 
 
 [![image.png](https://i.postimg.cc/Xv37qW9F/image.png)](https://postimg.cc/VJGcZ3GL)
 
