@@ -1,5 +1,5 @@
 # Dynamic Analysis - Debugging (TryHackMe)
-###### Solved by @vin1sss
+###### Solved by @vin1sss 
 
 > This is a Room about Reverse Engineering
 
@@ -9,7 +9,7 @@
 
 ### Introdução
 
-Esta sala da plataforma [TryHackMe](https://tryhackme.com/about) aprofunda a **[análise dinâmica](https://github.com/vin1sss/WriteUps/blob/main/attachments/An%C3%A1lise_Din%C3%A2mica.md) avançada** para contornar [evasões comuns usadas por malware](https://github.com/vin1sss/WriteUps/blob/main/attachments/Evas%C3%B5es_usadas_por_malwares.md) (detecção de VM, *timing/sleep*, checagem de ferramentas, ausência de atividade do usuário). O foco é usar o **x32dbg/x64dbg** para **controlar o fluxo de execução**, **manipular registradores/flags** e **patchar** o binário, permitindo observar o comportamento real.
+Esta sala da plataforma [TryHackMe](https://tryhackme.com/about) aprofunda a **[análise dinâmica](https://github.com/vin1sss/WriteUps/blob/main/attachments/An%C3%A1lise_Din%C3%A2mica.md) avançada** para contornar [evasões comuns usadas por malware](https://github.com/vin1sss/WriteUps/blob/main/attachments/Evas%C3%B5es_usadas_por_malwares.md) (detecção de VM, *timing/sleep*, checagem de ferramentas, ausência de atividade do usuário). O foco é usar **x32dbg/x64dbg** para **controlar o fluxo de execução**, **manipular registradores/flags** e **patchar** o binário, permitindo observar o comportamento real.
 
 * Pré-requisitos recomendados: *Basic Static Analysis*, *Basic Dynamic Analysis* e *Advanced Static Analysis*.
 * Objetivo: entender e burlar um **TLS Callback** que tenta detectar análise, desviando do caminho de evasão e, por fim, **patchando** o binário para um bypass persistente.
@@ -29,9 +29,9 @@ Esta tarefa apresenta o **problema central** da sala: malwares usam [**técnicas
 
 **Pré-requisitos recomendados:**
 
-* [Análise Estática Básica](https://tryhackme.com/room/staticanalysis1)
-* [Análise Dinâmica Básica](https://tryhackme.com/room/basicdynamicanalysis)
-* [Análise Estática Avançada](https://tryhackme.com/room/advancedstaticanalysis)
+* Análise Estática Básica
+* Análise Dinâmica Básica
+* Análise Estática Avançada
 
 ***
 
@@ -291,3 +291,13 @@ A análise dinâmica só cumpre seu papel quando o analista **conduz o programa*
   **Nenhuma resposta necessária (check de progresso).**
 
 ***
+
+Fim! 
+
+[![image.png](https://i.postimg.cc/Xv37qW9F/image.png)](https://postimg.cc/VJGcZ3GL)
+
+<p align="center">
+  <img src="https://i.postimg.cc/4NV1RvPp/Image-Photoroom.png" width="50"/>
+</p>
+
+##
