@@ -9,7 +9,7 @@
 
 ### Introdução
 
-Esta sala da plataforma TryHackMe aprofunda **técnicas de [anti–engenharia reversa](https://github.com/vin1sss/WriteUps/blob/main/attachments/Evas%C3%B5es_usadas_por_malwares.md)** para contornar barreiras como **anti-depuração** (ex.: `IsDebuggerPresent`, uso de `SuspendThread`), **detecção de VM** (ex.: WMI/`Win32_TemperatureProbe`) e **ofuscação via packers** (ex.: UPX/Themida). O foco é usar o **[x32dbg/x64dbg](https://x64dbg.com/)** e ferramentas de apoio (**DetectItEasy, PEStudio, Scylla**) para **controlar o fluxo de execução**, **editar memória/registradores (incl. EIP/RIP)** e **patchar** instruções (NOPs/saltos), revelando o comportamento real.
+[Esta sala](https://tryhackme.com/room/antireverseengineering) da plataforma TryHackMe aprofunda **técnicas de [anti–engenharia reversa](https://github.com/vin1sss/WriteUps/blob/main/attachments/Evas%C3%B5es_usadas_por_malwares.md)** para contornar barreiras como **anti-depuração** (ex.: `IsDebuggerPresent`, uso de `SuspendThread`), **detecção de VM** (ex.: WMI/`Win32_TemperatureProbe`) e **ofuscação via packers** (ex.: UPX/Themida). O foco é usar o **[x32dbg/x64dbg](https://x64dbg.com/)** e ferramentas de apoio (**DetectItEasy, PEStudio, Scylla**) para **controlar o fluxo de execução**, **editar memória/registradores (incl. EIP/RIP)** e **patchar** instruções (NOPs/saltos), revelando o comportamento real.
 
 **Pré-requisitos recomendados:** Basic Dynamic Analysis (e avançada), noções de Assembly (registradores/flags) e conceitos básicos de C (condições/fluxo).
 
